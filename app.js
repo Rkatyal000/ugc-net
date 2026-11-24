@@ -404,7 +404,7 @@
           <div class="qtext">${esc(q.q)}</div>
           <div role="radiogroup" aria-label="Options">
             ${perm.map((orig, i) => `
-              <button class="opt ${st.answers[q.n] === orig ? "sel" : ""}" role="radio" aria-checked="${st.answers[q.n] === orig}" data-act="pick" data-orig="${orig}">
+              <button class="opt ${st.answers[q.n] === orig ? "sel" : ""}" role="radio" aria-checked="${st.answers[q.n] === orig}" aria-label="Option ${LETTERS[i]}: ${esc(q.options[orig])}" data-act="pick" data-orig="${orig}">
                 <span class="key">${LETTERS[i]}</span><span>${esc(q.options[orig])}</span>
               </button>`).join("")}
           </div>
@@ -460,6 +460,8 @@
     st.cur = Math.max(0, Math.min(P.questions.length - 1, i));
     save();
     renderExam();
+    // on phones the action buttons sit below the fold; bring the new question into view
+    if (window.scrollY > 0) window.scrollTo(0, 0);
   }
 
   function askSubmit() {

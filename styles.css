@@ -268,7 +268,7 @@ table.tbl td.num, table.tbl th.num { text-align: right; font-variant-numeric: ta
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .tabs button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: .4em 1em; font-size: .84rem; font-weight: 600; }
 .tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
-select.sel { padding: .45em .7em; border-radius: 10px; border: 1px solid var(--line); font: inherit; font-size: .86rem; background: #fff; }
+select.sel { max-width: 100%; padding: .45em .7em; border-radius: 10px; border: 1px solid var(--line); font: inherit; font-size: .86rem; background: #fff; }
 .rv { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; background: #fff; }
 .rv .rvhead { display: flex; justify-content: space-between; gap: 10px; font-size: .8rem; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
 .rv .rvq { font-weight: 600; margin-bottom: 10px; }
