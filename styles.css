@@ -307,6 +307,12 @@ select.sel { padding: .45em .7em; border-radius: 10px; border: 1px solid var(--l
   .hero-stats b { font-size: 1.15rem; }
   .hero-stats span { font-size: .68rem; }
 }
+@media (max-width: 400px) {
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .split { grid-template-columns: 1fr; }
+  .facts div { min-width: 70px; }
+}
+.hero-inner > *, .exam-body > *, .grid2 > * { min-width: 0; }
 @media print {
   body { background: #fff; }
   .no-print, .nav, .foot { display: none !important; }
