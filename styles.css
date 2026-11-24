@@ -308,6 +308,9 @@ select.sel { padding: .45em .7em; border-radius: 10px; border: 1px solid var(--l
   .hero-stats span { font-size: .68rem; }
 }
 @media (max-width: 400px) {
+  .topbar .who, .timer svg, .pal-toggle svg { display: none; }
+  .tb-left, .tb-right { gap: 8px; }
+  .topbar { gap: 8px; }
   .hero-stats { grid-template-columns: repeat(2, 1fr); }
   .split { grid-template-columns: 1fr; }
   .facts div { min-width: 70px; }
