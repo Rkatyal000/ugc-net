@@ -56,11 +56,11 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-  function shuffledIdx(rand) {
-    const a = [0, 1, 2, 3];
+  function shuffle(a, rand) {
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   }
+  function shuffledIdx(rand) { return shuffle([0, 1, 2, 3], rand); }
   function sectionsOf(paper) {
     const seen = [];
     paper.questions.forEach(q => { if (!seen.includes(q.section)) seen.push(q.section); });
@@ -78,13 +78,17 @@
     order.forEach(id => {
       const perm = {};
       PAPERS[id].questions.forEach(q => { perm[q.n] = shuffledIdx(rand); });
-      papers[id] = { status: "pending", answers: {}, marked: {}, visited: {}, time: {}, cur: 0, perm };
+      const order = shuffle(PAPERS[id].questions.map((_, i) => i), rand);
+      papers[id] = { status: "pending", answers: {}, marked: {}, visited: {}, time: {}, cur: 0, perm, order };
     });
     session = { name, mode, order, idx: 0, papers, createdAt: Date.now(), phase: "ready" };
     save();
   }
 
   function curId() { return session.order[session.idx]; }
+  // order[pos] = index into P.questions; older saved sessions have no order → natural order
+  function orderOf(st, P) { return st.order || P.questions.map((_, i) => i); }
+  function curQ() { const st = curState(), P = curPaper(); return P.questions[orderOf(st, P)[st.cur]]; }
   function curPaper() { return PAPERS[curId()]; }
   function curState() { return session.papers[curId()]; }
 
@@ -93,7 +97,7 @@
     st.status = "running";
     st.startedAt = Date.now();
     st.endsAt = st.startedAt + curPaper().minutes * 60 * 1000;
-    st.visited[curPaper().questions[st.cur].n] = true;
+    st.visited[curQ().n] = true;
     session.phase = "exam";
     save();
     render();
@@ -133,7 +137,7 @@
     const st = curState();
     if (!st || st.status !== "running") return stopTick();
     const now = Date.now();
-    const q = curPaper().questions[st.cur];
+    const q = curQ();
     // per-question time tracking (capped so a sleeping laptop doesn't inflate it)
     const dt = Math.min(now - lastTick, 5000) / 1000;
     lastTick = now;
@@ -156,14 +160,16 @@
     const bySec = {};
     sectionsOf(P).forEach(s => (bySec[s] = { name: s, total: 0, correct: 0, wrong: 0, skipped: 0, time: 0 }));
     let correct = 0, wrong = 0, skipped = 0, time = 0;
+    const pos = {};
+    orderOf(st, P).forEach((qi, p) => (pos[P.questions[qi].n] = p + 1));
     const items = P.questions.map(q => {
       const a = st.answers[q.n];
       const status = a === undefined ? "s" : a === q.answer ? "c" : "w";
       const s = bySec[q.section];
       s.total++; s.time += st.time[q.n] || 0; time += st.time[q.n] || 0;
       if (status === "c") { correct++; s.correct++; } else if (status === "w") { wrong++; s.wrong++; } else { skipped++; s.skipped++; }
-      return { q, a, status, marked: !!st.marked[q.n], t: st.time[q.n] || 0 };
-    });
+      return { q, a, status, marked: !!st.marked[q.n], t: st.time[q.n] || 0, pos: pos[q.n] };
+    }).sort((x, y) => x.pos - y.pos);
     const sections = Object.values(bySec).map(s => ({ ...s, pct: pct(s.correct, s.total), attempted: s.correct + s.wrong,
       acc: pct(s.correct, s.correct + s.wrong), avgT: s.total ? s.time / s.total : 0 }));
     return {
@@ -278,7 +284,7 @@
           <li>Paper II starts when Paper I is submitted. You can't go back to a paper after submitting it.</li>
           <li>Answered questions that are also marked for review are still counted.</li>
           <li>Progress is saved in this browser. If the page is closed, the timer keeps running.</li>
-          <li>Options are shuffled on every attempt, so a retake is a fresh test.</li>
+          <li>Questions and options are shuffled on every attempt, so a retake is a fresh test.</li>
         </ul>
       </section>
 
@@ -370,12 +376,11 @@
 
   function renderExam() {
     const P = curPaper(), st = curState();
-    const q = P.questions[st.cur];
+    const q = curQ();
     st.visited[q.n] = true;
     const perm = st.perm[q.n];
     const counts = { a: 0, na: 0, m: 0, am: 0, nv: 0 };
     P.questions.forEach(x => counts[qStatus(st, x.n)]++);
-    const secs = sectionsOf(P);
     app.innerHTML = `
     <div class="exam" id="exam">
       <div class="topbar">
@@ -434,12 +439,11 @@
               <span><i class="st-nv" style="border:1px solid var(--line)"></i>Not visited</span>
             </div>
             <div class="palette-scroll">
-              ${secs.map(s => `
-                <div class="palette-sec">${esc(s)}</div>
-                <div class="palette">
-                  ${P.questions.map((x, i) => x.section !== s ? "" :
-                    `<button class="pbtn st-${qStatus(st, x.n)} ${i === st.cur ? "cur" : ""}" data-act="goto" data-i="${i}" title="Q${i + 1}">${i + 1}</button>`).join("")}
-                </div>`).join("")}
+              <div class="palette-sec">Questions (shuffled order)</div>
+              <div class="palette">
+                ${orderOf(st, P).map((qi, pos) => { const x = P.questions[qi];
+                  return `<button class="pbtn st-${qStatus(st, x.n)} ${pos === st.cur ? "cur" : ""}" data-act="goto" data-i="${pos}" title="Q${pos + 1} · ${esc(x.section)}">${pos + 1}</button>`; }).join("")}
+              </div>
             </div>
           </div>
           <button class="btn danger lg" data-act="ask-submit">Submit ${esc(P.title)}</button>
@@ -618,7 +622,7 @@
       ${items.length ? items.map(i => {
         const perm = i.paper.st.perm[i.q.n];
         return `<div class="rv">
-          <div class="rvhead"><span><b>${esc(i.paper.P.title)} · Q${i.q.n}</b> · ${esc(i.q.section)}${i.marked ? " · marked" : ""}</span>
+          <div class="rvhead"><span><b>${esc(i.paper.P.title)} · Q${i.pos}</b> · ${esc(i.q.section)}${i.marked ? " · marked" : ""}</span>
           <span><span class="st-pill ${i.status}">${i.status === "c" ? "✓ Correct +2" : i.status === "w" ? "✗ Wrong 0" : "– Not attempted 0"}</span> · ${fmtDur(i.t)}</span></div>
           <div class="rvq">${esc(i.q.q)}</div>
           ${perm.map((orig, k) => {
@@ -676,12 +680,12 @@
         return renderHome();
       case "begin": return startPaper();
       case "pick": {
-        const q = curPaper().questions[st.cur];
+        const q = curQ();
         st.answers[q.n] = +el.dataset.orig; save(); return renderExam();
       }
-      case "clear": { const q = curPaper().questions[st.cur]; delete st.answers[q.n]; save(); return renderExam(); }
+      case "clear": { const q = curQ(); delete st.answers[q.n]; save(); return renderExam(); }
       case "mark": {
-        const q = curPaper().questions[st.cur];
+        const q = curQ();
         if (st.marked[q.n]) { delete st.marked[q.n]; save(); return renderExam(); }
         st.marked[q.n] = true; return go(st.cur + 1);
       }
@@ -704,7 +708,7 @@
     if (!session || session.phase !== "exam" || document.getElementById("modal")) return;
     if (e.target.tagName === "INPUT" || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    const st = curState(), q = curPaper().questions[st.cur];
+    const st = curState(), q = curQ();
     const idx = "1234".indexOf(k) >= 0 ? "1234".indexOf(k) : "abcd".indexOf(k);
     if (k.length === 1 && idx >= 0) { st.answers[q.n] = st.perm[q.n][idx]; save(); renderExam(); }
     else if (k === "arrowright" || k === "n") go(st.cur + 1);

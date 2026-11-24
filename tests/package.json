@@ -1,0 +1,11 @@
+{
+  "name": "ugc-net-practice",
+  "private": true,
+  "description": "NETPrep — static UGC-NET mock test. No build step; tests run the real app in jsdom.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0"
+  }
+}

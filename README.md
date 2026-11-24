@@ -6,6 +6,7 @@ A full-length, timed UGC-NET practice test that runs entirely in the browser:
 - **Paper II** (Code 90, Political Science incl. International Relations): 100 questions, **2 hours**
 - 2 marks per question, no negative marking, **auto-submit when time runs out**
 - Result page with the total score, section-wise strengths and weaknesses, time per question, revision tips, and a review of every answer with its explanation
+- **Questions and options are shuffled on every attempt**, so a retake is a fresh test
 - Progress is saved in the browser (a refresh never loses answers). Works on phones too.
 
 It is a plain static site (HTML/CSS/JS) with no build step and no server.
@@ -32,7 +33,14 @@ Other options: drag the folder onto https://app.netlify.com/drop, or import the 
 | `styles.css` | All styling |
 | `app.js` | Exam engine: timer, auto-submit, palette, scoring, analysis |
 | `questions.js` | The 150 questions, answers, explanations and section tags (generated) |
+| `tests/app.test.js` | End-to-end test suite |
 | `tools/parse_pdfs.py` | Regenerates `questions.js` from the practice-paper PDFs' text |
+
+## Tests
+End-to-end tests load the real app into jsdom and drive it like a student: clicks, keyboard, the timer running out, reloads, and scoring checks (300/300, 0/300 and a mixed run checked section by section).
+```bash
+cd tests && npm install && npm test
+```
 
 ## Updating questions
 Extract the PDF text (e.g. with `pypdf`) and run:
